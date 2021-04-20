@@ -24,7 +24,7 @@ type RecognitionAudio struct {
 
 type SpeechToTextRequest struct {
 	Config RecognitionConfig `json:"config"`
-	Audio  RecognitionAudio  `json"audio"`
+	Audio  RecognitionAudio  `json:"audio"`
 }
 
 type SpeechRecognitionResult struct {
@@ -42,7 +42,6 @@ func main() {
 	}
 
 	file := os.Args[1]
-
 	audio, err := os.Open(file)
 	if err != nil {
 		log.Fatalln(err)
@@ -56,7 +55,7 @@ func main() {
 	data, err := json.Marshal(SpeechToTextRequest{
 		Config: RecognitionConfig{
 			Encoding:        "FLAC",
-			SampleRateHertz: 4800,
+			SampleRateHertz: 48000,
 			LanguageCode:    "en-US",
 		},
 		Audio: RecognitionAudio{
@@ -64,7 +63,10 @@ func main() {
 		},
 	})
 
-	res, err := http.Post("https://speech.googleapis.com/v1/speech:recognize", "application/json", bytes.NewBuffer(data))
+	res, err := http.Post(fmt.Sprintf("https://speech.googleapis.com/v1/speech:recognize?key=%s",
+		os.Getenv("API_KEY")),
+		"application/json",
+		bytes.NewBuffer(data))
 	if err != nil {
 		log.Fatalf("request to Google Speech-to-Text API failed: %v\n", err)
 	}
@@ -75,23 +77,17 @@ func main() {
 		log.Fatalf("error reading response from Google: %v\n", err)
 	}
 
-	log.Println(string(responseData))
+	if res.StatusCode != 200 {
+		log.Fatalln(string(responseData))
+	}
 
 	var result SpeechRecognitionResult
 	if err := json.Unmarshal(responseData, &result); err != nil {
 		log.Fatalf("failed to read data from Google: %v\n", err)
 	}
 
-	if len(result.Results) < 1 {
-		log.Fatalln("did not get any results")
+	fmt.Printf("\nTranscript:\n")
+	for _, t := range result.Results {
+		fmt.Printf("%s", t.Alternatives[0].Transcript)
 	}
-	if len(result.Results[0].Alternatives) < 1 {
-		log.Fatalln("did not get any alternatives")
-	}
-
-	targetResult := result.Results[0].Alternatives[0]
-	fmt.Printf("\n")
-	fmt.Printf("Confidence: %.2f\n", targetResult.Confidence)
-	fmt.Printf("\n")
-	fmt.Printf("Transcript: %s\n", targetResult.Transcript)
 }
