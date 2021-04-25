@@ -1,3 +1,3 @@
-module github.com/jmbaur/speech-to-text
+module github.com/jmbaur/gotranscribe
 
 go 1.16
