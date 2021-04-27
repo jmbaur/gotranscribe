@@ -90,4 +90,5 @@ func main() {
 	for _, t := range result.Results {
 		fmt.Printf("%s", t.Alternatives[0].Transcript)
 	}
+	fmt.Println()
 }
